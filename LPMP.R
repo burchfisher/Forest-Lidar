@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------
-# 🦙 LIDAR PIXEL METRICS PIPELINE v.2
+# 🦙 LIDAR PIXEL METRICS PIPELINE
 #    (All inputs in METERS; optional global DTM; lidR ≥ 4.1.x)
 # Created by Burch Fisher 10/14/25
 # ------------------------------------------------------------------------

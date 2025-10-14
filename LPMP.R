@@ -116,52 +116,61 @@ meters_to_native <- function(x_meters, las_or_ctg) {
 
 # -------- 3) METRICS FUNCTION (Z→meters if needed) -------------------------
 myMetrics <- function(z, rn, i, a, g, c) {
-  z  <- z[!is.na(z)]
+  idx <- !is.na(z)
+  z   <- z[idx]
+  rn  <- if (is.null(rn)) rn else rn[idx]
+  i   <- if (is.null(i))  i  else i[idx]
+  a   <- if (is.null(a))  a  else a[idx]
+  g   <- if (is.null(g))  g  else g[idx]
+  c   <- if (is.null(c))  c  else c[idx]
+
   nz <- length(z)
-  
+
   angle_missing <- is.null(a) || length(a) == 0 || all(is.na(a))
-  safe_mean <- function(x) if (length(x) == 0) NA_real_ else mean(x, na.rm = TRUE)
-  safe_max  <- function(x) if (length(x) == 0) NA_real_ else suppressWarnings(max(x, na.rm = TRUE))
-  safe_min  <- function(x) if (length(x) == 0) NA_real_ else suppressWarnings(min(x, na.rm = TRUE))
+  safe_mean <- function(x) if (is.null(x) || length(x) == 0) NA_real_ else mean(x, na.rm = TRUE)
+  safe_max  <- function(x) if (is.null(x) || length(x) == 0) NA_real_ else suppressWarnings(max(x, na.rm = TRUE))
+  safe_min  <- function(x) if (is.null(x) || length(x) == 0) NA_real_ else suppressWarnings(min(x, na.rm = TRUE))
   q         <- function(p) if (nz == 0) NA_real_ else as.numeric(quantile(z, probs = p, na.rm = TRUE, names = FALSE))
   pct_bin   <- function(lo, hi) if (nz == 0) NA_real_ else 100 * sum(z >= lo & z < hi, na.rm = TRUE) / nz
-  
+
   has_g <- !(is.null(g) || length(g) == 0 || all(is.na(g)))
   maxg  <- if (has_g) safe_max(g) else NA_real_
   ming  <- if (has_g) safe_min(g) else NA_real_
-  
+
   list(
-    NoPoints      = nz,
+    numPoints  = nz,
+    numGround  = if (is.null(c) || length(c) == 0) NA_real_
+                 else sum(as.integer(c) == 2L, na.rm = TRUE),
+
     meanIntensity = safe_mean(i),
     meanAngle     = if (angle_missing) NA_real_ else safe_mean(a),
     maxAngle      = if (angle_missing) NA_real_ else safe_max(a),
     minAngle      = if (angle_missing) NA_real_ else safe_min(a),
-    
+
     iqr     = if (nz == 0) NA_real_ else IQR(z, na.rm = TRUE),
     meanHt  = safe_mean(z),
     maxHt   = safe_max(z),
-    
+
     p10 = q(0.10), p20 = q(0.20), p25 = q(0.25), p30 = q(0.30),
     p40 = q(0.40), p50 = q(0.50), p60 = q(0.60), p70 = q(0.70),
     p75 = q(0.75), p80 = q(0.80), p90 = q(0.90), p95 = q(0.95), p99 = q(0.99),
-    
-    v1  = pct_bin(0,1), v2=pct_bin(1,2), v3=pct_bin(2,3), v4=pct_bin(3,4),
-    v5  = pct_bin(4,5), v6=pct_bin(5,6), v9=pct_bin(6,9), v12=pct_bin(9,12),
+
+    v1  = pct_bin(0,1),   v2=pct_bin(1,2),    v3=pct_bin(2,3),    v4=pct_bin(3,4),
+    v5  = pct_bin(4,5),   v6=pct_bin(5,6),    v9=pct_bin(6,9),    v12=pct_bin(9,12),
     v15 = pct_bin(12,15), v18=pct_bin(15,18), v21=pct_bin(18,21),
     v24 = pct_bin(21,24), v27=pct_bin(24,27), v30=pct_bin(27,30),
     v33 = pct_bin(30,33), v36=pct_bin(33,36), v39=pct_bin(36,39),
     v42 = pct_bin(39,42), v45=pct_bin(42,45), v48=pct_bin(45,48), v51=pct_bin(48,51),
-    
-    maxTimeInt = if (!has_g) NA_integer_ else {
+
+    maxTime = if (!has_g) NA_integer_ else {
       as.integer(gsub("-", "", substr(lubridate::as_datetime(1315576000 + maxg), 3, 10)))
     },
-    minTimeInt = if (!has_g) NA_integer_ else {
+    minTime = if (!has_g) NA_integer_ else {
       as.integer(gsub("-", "", substr(lubridate::as_datetime(1315576000 + ming), 3, 10)))
     },
     diffTime = if (!has_g) NA_real_ else (maxg - ming) / 86400
   )
 }
-
 
 # -------- 4) DEDUP HELPER (tolerances passed in METERS) --------------------
 dedup_eps <- function(las, eps_xy_m, eps_z_m) {

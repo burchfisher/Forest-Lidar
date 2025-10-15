@@ -4,6 +4,7 @@ library(terra)
 
 # ------------------------------------------------------------------------
 # 🏔️  LIDAR DTM BUILDER (PER TILE) — unit-aware + skips all-water tiles
+# Created by Burch Fisher 10/15/25
 # ------------------------------------------------------------------------
 # What this does
 # 1) Loads a folder of LAS/LAZ tiles into a LAScatalog.

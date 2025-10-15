@@ -1,9 +1,3 @@
-# install.packages(c("lidR","terra"))  # if needed
-suppressPackageStartupMessages({
-  library(lidR)
-  library(terra)
-})
-
 # ------------------------------------------------------------------------
 # 🏔️  LIDAR DTM BUILDER (PER TILE) — unit-aware, Z→meters, EPSG-tagged outputs
 # Created by Burch Fisher 10/15/25
@@ -32,6 +26,10 @@ suppressPackageStartupMessages({
 # • Elevations (Z) are meters if source CRS is US-ft (by default), otherwise native (see "force_z_m" varible).
 # • If `output_crs` is set to a metric EPSG, both XY and Z will be metric in outputs.
 # ------------------------------------------------------------------------
+suppressPackageStartupMessages({
+  library(lidR)
+  library(terra)
+})
 
 # =========================
 # CONFIG (you set these in METERS)

@@ -116,6 +116,7 @@ meters_to_native <- function(x_meters, las_or_ctg) {
 
 # -------- 3) METRICS FUNCTION (Z→meters if needed) -------------------------
 myMetrics <- function(z, rn, i, a, g, c) {
+  # mask to non-NA z
   idx <- !is.na(z)
   z   <- z[idx]
   rn  <- if (is.null(rn)) rn else rn[idx]
@@ -126,22 +127,34 @@ myMetrics <- function(z, rn, i, a, g, c) {
 
   nz <- length(z)
 
-  angle_missing <- is.null(a) || length(a) == 0 || all(is.na(a))
+  # helpers (always return the right NA_* type)
   safe_mean <- function(x) if (is.null(x) || length(x) == 0) NA_real_ else mean(x, na.rm = TRUE)
   safe_max  <- function(x) if (is.null(x) || length(x) == 0) NA_real_ else suppressWarnings(max(x, na.rm = TRUE))
   safe_min  <- function(x) if (is.null(x) || length(x) == 0) NA_real_ else suppressWarnings(min(x, na.rm = TRUE))
   q         <- function(p) if (nz == 0) NA_real_ else as.numeric(quantile(z, probs = p, na.rm = TRUE, names = FALSE))
   pct_bin   <- function(lo, hi) if (nz == 0) NA_real_ else 100 * sum(z >= lo & z < hi, na.rm = TRUE) / nz
 
+  angle_missing <- is.null(a) || length(a) == 0 || all(is.na(a))
   has_g <- !(is.null(g) || length(g) == 0 || all(is.na(g)))
   maxg  <- if (has_g) safe_max(g) else NA_real_
   ming  <- if (has_g) safe_min(g) else NA_real_
 
-  list(
-    numPoints  = nz,
-    numGround  = if (is.null(c) || length(c) == 0) NA_real_
-                 else sum(as.integer(c) == 2L, na.rm = TRUE),
+  # --- integer counts ---
+  numPoints <- as.integer(nz)
 
+  # Classification may be length 0 here; keep integer type even when empty
+  numGround <- if (is.null(c) || length(c) == 0) {
+    NA_integer_
+  } else {
+    as.integer(sum(as.integer(c) == 2L, na.rm = TRUE))
+  }
+
+  list(
+    # integers
+    numPoints  = numPoints,
+    numGround  = numGround,
+
+    # doubles (continuous)
     meanIntensity = safe_mean(i),
     meanAngle     = if (angle_missing) NA_real_ else safe_mean(a),
     maxAngle      = if (angle_missing) NA_real_ else safe_max(a),
@@ -162,13 +175,14 @@ myMetrics <- function(z, rn, i, a, g, c) {
     v33 = pct_bin(30,33), v36=pct_bin(33,36), v39=pct_bin(36,39),
     v42 = pct_bin(39,42), v45=pct_bin(42,45), v48=pct_bin(45,48), v51=pct_bin(48,51),
 
-    maxTime = if (!has_g) NA_integer_ else {
+    # time: integer dates + double duration
+    maxTime = if (!has_g || is.na(maxg)) NA_integer_ else {
       as.integer(gsub("-", "", substr(lubridate::as_datetime(1315576000 + maxg), 3, 10)))
     },
-    minTime = if (!has_g) NA_integer_ else {
+    minTime = if (!has_g || is.na(ming)) NA_integer_ else {
       as.integer(gsub("-", "", substr(lubridate::as_datetime(1315576000 + ming), 3, 10)))
     },
-    diffTime = if (!has_g) NA_real_ else (maxg - ming) / 86400
+    diffTime = if (!has_g || anyNA(c(maxg, ming))) NA_real_ else (maxg - ming) / 86400
   )
 }
 
